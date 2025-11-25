@@ -1,0 +1,89 @@
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  password  String
+  role      Role     @default(SUB)
+  ratio     Int      @default(75) // percent
+  channels  Channel[]
+  music     Music[]  @relation("MusicDistributor", references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  withdraws Withdraw[]
+}
+
+model Channel {
+  id         Int      @id @default(autoincrement())
+  platform   Platform
+  channelId  String
+  channelName String
+  owner      User     @relation(fields: [ownerId], references: [id])
+  ownerId    Int
+  createdAt  DateTime @default(now())
+}
+
+model Music {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String?
+  filename    String
+  uploaderId  Int
+  uploader    User     @relation(fields: [uploaderId], references: [id])
+  distributions Distribution[]
+  createdAt   DateTime @default(now())
+}
+
+model Distribution {
+  id         Int      @id @default(autoincrement())
+  music      Music    @relation(fields: [musicId], references: [id])
+  musicId    Int
+  toUser     User     @relation(fields: [toUserId], references: [id])
+  toUserId   Int
+  toChannel  Channel? @relation(fields: [toChannelId], references: [id])
+  toChannelId Int?
+  status     DistributionStatus @default(PENDING)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model PlayRecord {
+  id         Int      @id @default(autoincrement())
+  distribution Distribution @relation(fields: [distributionId], references: [id])
+  distributionId Int
+  plays      Int      @default(0)
+  revenue    Float    @default(0)
+  calculatedAt DateTime @default(now())
+}
+
+model Withdraw {
+  id Int @id @default(autoincrement())
+  user User @relation(fields: [userId], references: [id])
+  userId Int
+  amount Float
+  status String @default("requested")
+  createdAt DateTime @default(now())
+}
+
+enum Role {
+  ADMIN
+  SUB
+}
+
+enum Platform {
+  YOUTUBE
+  TIKTOK
+}
+
+enum DistributionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
